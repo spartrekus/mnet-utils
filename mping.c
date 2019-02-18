@@ -130,27 +130,10 @@ int makehosts(char **hostlist)
 
 void usage(char *prog)
 {
-   fprintf(stderr,
-	   "%s  <-query> [-B] [-f fromhost] [-d delay] [-T time] targets\n"
-	   "    where <query> is one of:\n"
-	   "        -t : icmp timestamp request (default)\n"
-	   "        -m : icmp address mask request\n"
-	   "    The delay is in microseconds to sleep between packets.\n"
-	   "    targets is a list of hostnames or addresses\n"
-	   "    -T specifies the number of seconds to wait for a host to\n"
-	   "       respond.  The default is 5.\n"
-	   "    -B specifies \'broadcast\' mode.  icmpquery will wait\n"
-	   "       for timeout seconds and print all responses.\n"
-	   "    If you're on a modem, you may wish to use a larger -d and -T\n"
-	   ,prog);
 }
 
 
 
-
-/*
- * Set up a packet.  Returns the length of the ICMP portion.
- */
 
 int initpacket(char *buf, int querytype, struct in_addr fromaddr)
 {
@@ -441,9 +424,12 @@ void recv_packet()
 		nreceived++;
 	}
 }
+
+
+
 int unpack(char *buf, int len)
 {
-int i, iphdrlen;
+        int i, iphdrlen;
 	struct ip *ip;
 	struct icmp *icmp;
 	struct timeval *tvsend;
@@ -482,58 +468,8 @@ void tv_sub(struct timeval *out, struct timeval *in)
 
 
 
-
-/*
-int  main(int argc, char *argv[])
-{
-	struct hostent *host;
-	struct protoent *protocol;
-	unsigned long inaddr = 0l;
-	int waittime = MAX_WAIT_TIME;
-	int size = 50 * 1024;
-	if (argc < 2)
-	{
-		printf("usage:%s hostname/IP address\n", argv[0]);
-		exit(1);
-	}
-	if ((protocol = getprotobyname("icmp")) == NULL)
-	{
-		perror("getprotobyname");
-		exit(1);
-	}
-	if ((sockfd = socket(AF_INET, SOCK_RAW, protocol->p_proto)) < 0)
-	{
-		perror("socket error");
-		exit(1);
-	}
-	setuid(getuid());
-	setsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size));
-	bzero(&dest_addr, sizeof(dest_addr));
-	dest_addr.sin_family = AF_INET;
-	if (inaddr = inet_addr(argv[1]) == INADDR_NONE)
-	{
-		if ((host = gethostbyname(argv[1])) == NULL)
-		{
-			perror("gethostbyname error");
-			exit(1);
-		}
-		memcpy((char*) &dest_addr.sin_addr, host->h_addr, host->h_length);
-	}
-	else
-	dest_addr.sin_addr.s_addr = inet_addr(argv[1]);
-	pid = getpid();
-	printf("PING %s(%s): %d bytes data in ICMP packets.\n", argv[1], inet_ntoa
-	(dest_addr.sin_addr), datalen);
-	send_packet();
-	recv_packet();
-	statistics(SIGALRM);
-	return 0;
-}
-*/
-
 int main(int argc, char **argv)
 {
-
 	struct hostent *host;
 	struct protoent *protocol;
 	unsigned long inaddr = 0l;
@@ -558,7 +494,8 @@ int main(int argc, char **argv)
 	setsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size));
 	bzero(&dest_addr, sizeof(dest_addr));
 	dest_addr.sin_family = AF_INET;
-	if (inaddr = inet_addr(argv[1]) == INADDR_NONE)
+        printf( "Inet addr: %s\n" , argv[ 1 ] );
+	if ( inaddr = inet_addr( argv[1] ) == INADDR_NONE)
 	{
 		if ((host = gethostbyname(argv[1])) == NULL)
 		{
@@ -570,88 +507,12 @@ int main(int argc, char **argv)
 	else
 	dest_addr.sin_addr.s_addr = inet_addr(argv[1]);
 	pid = getpid();
-	printf("PING %s(%s): %d bytes data in ICMP packets.\n", argv[1], inet_ntoa
-	(dest_addr.sin_addr), datalen);
+        printf("PING %s(%s): %d bytes data in ICMP packets.\n", argv[1], inet_ntoa(dest_addr.sin_addr), datalen);
 	send_packet();
 	recv_packet();
 	statistics(SIGALRM);
 	return 0;
 
-
-
-
-   // imt
-   int s;
-   char *progname;
-   extern char *optarg;         /* getopt variable declarations */
-   char *hostfrom = NULL;
-   extern int optind;
-   extern int optopt;
-   extern int opterr;
-   char ch;                     /* Holds the getopt result */
-   int on = 1;
-   int hostcount;
-   int delay = 0;
-   int querytype = ICMP_TSTAMP;
-   struct in_addr fromaddr;
-   int timeout = 5;  /* Default to 5 seconds */
-   int broadcast = 0; /* Should we wait for all responses? */
-
-   fromaddr.s_addr = 0;
-
-   progname = argv[0];
-
-   while ((ch = getopt(argc, argv, "Btmf:d:T:")) != EOF) 
-      switch(ch)
-      {
-      case 'B':
-	      broadcast = 1;
-	      break;
-      case 'd':
-	      delay = (int) strtol(optarg, NULL, 10);
-	      break;
-      case 't': /* timestamp request */
-	      querytype = ICMP_TSTAMP;
-	      break;
-      case 'm': /* address mask request */
-	      querytype = ICMP_MASKREQ;
-	      break;
-      case 'f':
-	      hostfrom = optarg;
-	      resolv_from(hostfrom, &fromaddr);
-	      break;
-      case 'T':
-	      timeout = (int) strtol(optarg, NULL, 10);
-	      break;
-      default:
-	      usage(progname);
-	      exit(-1);
-      }
-   argc -= optind;
-   argv += optind;
-
-   if (!argv[0] || !strlen(argv[0])) 
-   {
-      usage(progname);
-      exit(-1);
-   }
-
-   hostcount = makehosts(argv);
-
-   if ((s = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP)) < 0) {
-      perror("socket");
-      exit(1);
-   }
-   if (setsockopt(s, IPPROTO_IP, IP_HDRINCL, &on, sizeof(on)) < 0) {
-      perror("IP_HDRINCL");
-      exit(1);
-   }
-
-   signal(SIGALRM, myexit);
-   alarm(timeout);
-   sendpings(s, querytype, hostnames, delay, fromaddr);
-   recvpings(s, querytype, hostnames, hostcount, broadcast);
-   exit(0);
 }
    
 
